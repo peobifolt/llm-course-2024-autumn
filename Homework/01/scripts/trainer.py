@@ -96,8 +96,8 @@ class Trainer:
         Возвращает:
             Tensor: Значение потерь.
         """
-        return self.loss_func(logits.view(-1, logits.size(-1)), y.view(-1))
-        # return <YOUR CODE HERE>
+        # return self.loss_func(logits.view(-1, logits.size(-1)), y.view(-1))
+        return self.loss_func(logits.permute(0, 2, 1), y)
 
     def train(self) -> None:
         """
