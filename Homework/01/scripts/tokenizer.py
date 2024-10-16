@@ -145,7 +145,12 @@ def count_pairs(data: List[List[int]]) -> Dict[Tuple[int, int], int]:
     >>> count_pairs(data)
     {(1, 2): 2, (2, 3): 2, (3, 4): 1, (2, 2): 1}
     """
-    <YOUR CODE HERE>
+    res = dict()
+    for arr in data:
+        for i in range(len(arr) - 1):
+            pr = (arr[i], arr[i + 1])
+            res[pr] = res.get(pr, 0) + 1
+    return res
 
 
 def merge(numbers: List[int], pair: Tuple[int, int], idx: int) -> List[int]:
@@ -181,7 +186,16 @@ def merge(numbers: List[int], pair: Tuple[int, int], idx: int) -> List[int]:
     >>> merge([0, 0, 0, 1], (0, 0), 2)
     [2, 0, 1]
     """
-    <YOUR CODE HERE>
+    res = []
+    i = 0
+    while i < len(numbers):
+        if i + 1 < len(numbers) and (numbers[i], numbers[i + 1]) == pair:
+            res.append(idx)
+            i += 2
+        else:
+            res.append(numbers[i])
+            i += 1
+    return res
 
 
 class BpeTokenizer(ByteTokenizer):
@@ -266,8 +280,8 @@ class BpeTokenizer(ByteTokenizer):
 
         for _ in progress_bar:
             # Находим наиболее частотную пару токенов для склеивания в один токен
-            cnt = count_pairs(<YOUR CODE HERE>)
-            pair = <YOUR CODE HERE>
+            cnt = count_pairs(list_of_ids)
+            pair = max(cnt, key=cnt.get)
             freq = cnt[pair]
             progress_bar.set_description(f'pair={pair}, freq={freq}')
 
@@ -281,7 +295,7 @@ class BpeTokenizer(ByteTokenizer):
 
             # Обновляем токенизацию для наших тренировочных текстов с учетом нового токена
             for i, ids in enumerate(list_of_ids):
-                list_of_ids[i] = merge(<YOUR CODE HERE>)
+                list_of_ids[i] = merge(list_of_ids[i], pair, new_idx)
 
     def encode(self, text: str) -> List[int]:
         """
@@ -302,10 +316,14 @@ class BpeTokenizer(ByteTokenizer):
 
         # Последовательно применяем таблицу склеиваний в том порядке, в котором добавлялись токены в словарь
         while len(ids) > 1:
-            cnt = count_pairs(<YOUR CODE HERE>)
-            pair = <YOUR CODE HERE>
+            cnt = count_pairs([ids])
+            pair = None
+            for pr in self.merges:
+                if pr in cnt:
+                    pair = pr
+                    break
             if pair not in self.merges:
                 break
             idx = self.merges[pair]
-            ids = merge(<YOUR CODE HERE>)
+            ids = merge(ids, pair, idx)
         return ids
