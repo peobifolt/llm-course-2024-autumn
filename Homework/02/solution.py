@@ -12,7 +12,9 @@ def compute_attention(queries, keys, values) -> torch.Tensor:
     batch_size, seq_length, dim_per_head = queries.size()
     scores = torch.bmm(queries, keys.transpose(1, 2))
     scores /= dim_per_head**0.5
-    attention_weights = F.softmax(scores, dim=-1)
+    attention_weights = F.softmax(scores, dim=-1, dtype=torch.double)
+    if queries.dtype == torch.float32:
+        attention_weights = attention_weights.type(torch.float32)
     return torch.bmm(attention_weights, values)
 
 
@@ -23,6 +25,11 @@ def compute_multihead_attention(queries, keys, values, projection_matrix) -> tor
     values- (BATCH_SIZE, N_HEADS, SEQ_LENGTH, DIM_PER_HEAD)
     projection_matrix- (N_HEADS*DIM_PER_HEAD, N_HEADS*DIM_PER_HEAD)
     """
+    queries = queries.double()
+    keys = keys.double()
+    values = values.double()
+    projection_matrix = projection_matrix.double()
+
     batch_size, n_heads, seq_length, dim_per_head = queries.shape
     outputs = []
     for i in range(n_heads):
@@ -31,9 +38,11 @@ def compute_multihead_attention(queries, keys, values, projection_matrix) -> tor
         head_values = values[:, i]
         head_output = compute_attention(head_queries, head_keys, head_values)
         outputs.append(head_output)
-
     concatenated_output = torch.cat(outputs, dim=2)  # (BATCH_SIZE, SEQ_LENGTH, DIM_PER_HEAD * N_HEADS)
-    return torch.matmul(concatenated_output, projection_matrix)
+    for i in range(batch_size):
+        concatenated_output[i] = concatenated_output[i] @ projection_matrix.T
+
+    return concatenated_output.type(torch.float32)
 
 
 def compute_rotary_embeddings(x)-> torch.Tensor:
