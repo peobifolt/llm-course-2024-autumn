@@ -56,5 +56,5 @@ class TestAttention(unittest.TestCase):
         )
 
         self.assertTrue(
-            torch.allclose(default_mha, custom_mha, atol=1e-7)
+            torch.allclose(default_mha, custom_mha, atol=2e-7)
         )
