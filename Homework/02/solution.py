@@ -36,7 +36,7 @@ def compute_multihead_attention(queries, keys, values, projection_matrix) -> tor
         head_queries = queries[:, i]  # (BATCH_SIZE, SEQ_LENGTH, DIM_PER_HEAD)
         head_keys = keys[:, i]
         head_values = values[:, i]
-        head_output = compute_attention(head_queries, head_keys, head_values)
+        head_output = F.scaled_dot_product_attention(head_queries, head_keys, head_values)
         outputs.append(head_output)
     concatenated_output = torch.cat(outputs, dim=2)  # (BATCH_SIZE, SEQ_LENGTH, DIM_PER_HEAD * N_HEADS)
     for i in range(batch_size):
