@@ -15,7 +15,14 @@ def compute_alibi(num_heads: int, seq_len: int) -> torch.Tensor:
     Returns:
         torch.Tensor: A tensor containing ALiBi to be added to attention scores.
     """
-    pass
+    alibi = torch.zeros((num_heads, seq_len, seq_len), dtype=torch.float32)
+    const = 2 if num_heads >= 8 else 4
+    for head in range(num_heads):
+        for i in range(seq_len):
+            for j in range(seq_len):
+                alibi[head, i, j] = (j - i) / const**(head + 1)
+
+    return alibi
 
 
 if __name__ == "__main__":
