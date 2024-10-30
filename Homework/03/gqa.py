@@ -21,11 +21,13 @@ def scaled_dot_product_gqa(
             - (Optional) Attention weights with shape [batch size; num heads; seq len; kv seq len].
                 Only returned if 'need_weights' is True.
     """
+
     batch_size, seq_len, num_heads, embed_dim = query.shape
     kv_seq_len = key.shape[1]
     kv_heads = key.shape[2]
+
     if num_heads % kv_heads:
-        raise ValueError('num_heads must divides by kv_heads')
+        raise ValueError('num_heads must divide by kv_heads')
 
     key = key.repeat_interleave(num_heads // kv_heads, dim=2)
     key = key.permute(0, 2, 1, 3)
@@ -34,7 +36,19 @@ def scaled_dot_product_gqa(
 
     query = query.permute(0, 2, 1, 3)
 
-    out_vanilla = F.scaled_dot_product_attention(query, key, value, is_causal=is_causal)
+    attn_scores = torch.matmul(query, key.transpose(-2, -1)) / (embed_dim ** 0.5)
+
+    if is_causal:
+        mask = torch.triu(torch.ones(seq_len, kv_seq_len), diagonal=1).bool()
+        attn_scores.masked_fill_(mask.to(attn_scores.device), float('-inf'))
+
+    attn_weights = F.softmax(attn_scores, dim=-1)
+
+    out_vanilla = torch.matmul(attn_weights, value)
 
     out_vanilla = out_vanilla.permute(0, 2, 1, 3)
-    return out_vanilla, None
+
+    if need_weights:
+        return out_vanilla, attn_weights
+    else:
+        return out_vanilla, None
