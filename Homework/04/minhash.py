@@ -15,12 +15,22 @@ class MinHash:
         text = self.preprocess_text(text)      
         return set(text.split(' '))
     
-    def get_occurrence_matrix(self, corpus_of_texts: list[set]) -> pd.DataFrame:
+    def get_occurrence_matrix(self, corpus_of_texts: list[str]) -> pd.DataFrame:
         '''
         Получение матрицы вхождения токенов. Строки - это токены, столбы это id документов.
         id документа - нумерация в списке начиная с нуля
         '''
-        # TODO:
+        corpus_of_texts = list(map(self.tokenize, map(self.preprocess_text, corpus_of_texts)))
+        words = set()
+        for doc in corpus_of_texts:
+            words |= set(doc)
+        words = sorted(list(words))
+        data = []
+        for word in words:
+            row_count = [(1 if word in doc else None) for doc in corpus_of_texts]
+            data.append(row_count)
+        df = pd.DataFrame(data, columns=list(range(len(corpus_of_texts))))
+
         df.sort_index(inplace=True)
         return df
     
@@ -57,29 +67,39 @@ class MinHash:
             на выходе ожидаем количество совпадений/длину массива, для примера здесь:
             у нас 3 совпадения (1,1,3), ответ будет 3/5 = 0.6
         '''
-        # TODO:
-        return 
+        return np.isin(array_a, array_b).sum() / len(array_a)
 
-    
     def get_similar_pairs(self, min_hash_matrix) -> list[tuple]:
         '''
         Находит похожих кандидатов. Отдает список из таплов индексов похожих документов, похожесть которых > threshold.
         '''
-        # TODO:
-        return 
+        count_docs = len(min_hash_matrix[0])
+        result = []
+        matrix = self.get_similar_matrix(min_hash_matrix)
+        for i in range(count_docs):
+            for j in range(i + 1, count_docs):
+                if matrix[i][j] > self.threshold:
+                    result.append((i, j))
+        return result
     
-    def get_similar_matrix(self, min_hash_matrix) -> list[tuple]:
+    def get_similar_matrix(self, min_hash_matrix) -> list[list]:
         '''
         Находит похожих кандидатов. Отдает матрицу расстояний
         '''
-        # TODO: 
-                
-        return 
-     
+        transpose = min_hash_matrix.T
+        count_docs = len(transpose)
+        result = []
+        for i in range(count_docs):
+            row = []
+            for j in range(count_docs):
+                intersect = np.isin(transpose[i], transpose[j]).sum()
+                row.append(intersect / len(min_hash_matrix))
+            result.append(row)
+        return result
     
     def get_minhash(self, occurrence_matrix: pd.DataFrame) -> np.array:
         '''
-        Считает и возвращает матрицу мин хешей. MinHash содержит в себе новые индексы. 
+        Считает и возвращает матрицу мин хешей. MinHash содержит в себе новые индексы.
 
         new index = (2*(index +1) + 3) % 3 
         
@@ -98,9 +118,20 @@ class MinHash:
         Doc2 : 2
         Doc3 : 0
         '''
-        # TODO:
-        return 
-
+        prime_num_rows = len(occurrence_matrix)
+        while not self.is_prime(prime_num_rows):
+            prime_num_rows += 1
+        result = []
+        count_documents = len(occurrence_matrix.columns)
+        for permutation_index in range(self.num_permutations):
+            keys = [self.get_new_index(i, permutation_index, prime_num_rows) for i in range(len(occurrence_matrix))]
+            shuffled_df = occurrence_matrix.copy()
+            shuffled_df['new_index'] = keys
+            shuffled_df = shuffled_df.sort_values(by='new_index')
+            shuffled_df = shuffled_df.drop(columns=['new_index'])
+            row = [shuffled_df[i].first_valid_index() for i in range(count_documents)]
+            result.append(row)
+        return np.array(result)
     
     def run_minhash(self,  corpus_of_texts: list[str]):
         occurrence_matrix = self.get_occurrence_matrix(corpus_of_texts)
@@ -117,27 +148,19 @@ class MinHashJaccard(MinHash):
     
     
     def get_jaccard_similarity(self, set_a: set, set_b: set) -> float:
-        '''
-        Вовзращает расстояние Жаккарда для двух сетов. 
-        '''
-        # TODO:
-        return 
+        return len(set_a & set_b)
 
-    
     def get_similar_pairs(self, min_hash_matrix) -> list[tuple]:
         '''
         Находит похожих кандидатов. Отдает список из таплов индексов похожих документов, похожесть которых > threshold.
         '''
-        # TODO:
-        return 
-    
+        return super().get_similar_pairs(min_hash_matrix)
+
     def get_similar_matrix(self, min_hash_matrix) -> list[tuple]:
         '''
         Находит похожих кандидатов. Отдает матрицу расстояний
         '''
-        # TODO: 
-                
-        return 
+        return super().get_similar_matrix(min_hash_matrix)
      
     
     def get_minhash_jaccard(self, occurrence_matrix: pd.DataFrame) -> np.array:
@@ -163,8 +186,7 @@ class MinHashJaccard(MinHash):
         Doc3 : 2
         
         '''
-        # TODO:
-        return 
+        return super().get_minhash_similarity(occurrence_matrix)
 
     
     def run_minhash(self,  corpus_of_texts: list[str]):
