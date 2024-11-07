@@ -14,11 +14,10 @@ class MinHashLSH(MinHash):
         '''
         Возвращает массив из бакетов, где каждый бакет представляет собой N строк матрицы сигнатур.
         '''
-        # self.num_buckets = len(minhash) // min(len(minhash), self.num_buckets)
         step = len(minhash) // self.num_buckets
         result = []
         left = 0
-        for i in range(self.num_buckets):
+        for i in range(min(self.num_buckets, len(minhash))):
             cur_len = step
             if (len(minhash) - left) % (self.num_buckets - i):
                 cur_len += 1
