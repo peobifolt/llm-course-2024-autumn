@@ -8,9 +8,9 @@ def create_prompt(sample: dict) -> str:
     Returns:
         str: A formatted string prompt for the multiple choice question.
     """
-    <ВАШ КОД ЗДЕСЬ>
+    "<ВАШ КОД ЗДЕСЬ>"
 
-    return ...
+    return "<ВАШ КОД ЗДЕСЬ>"
 
 
 def create_prompt_with_examples(sample: dict, examples: list, add_full_example: bool = False) -> str:
@@ -25,6 +25,6 @@ def create_prompt_with_examples(sample: dict, examples: list, add_full_example: 
     Returns:
         str: A formatted string prompt for the multiple choice question with 5 examples.
     """
-    <ВАШ КОД ЗДЕСЬ>
+    "<ВАШ КОД ЗДЕСЬ>"
 
-    return <ВАШ КОД ЗДЕСЬ>
+    return "<ВАШ КОД ЗДЕСЬ>"
