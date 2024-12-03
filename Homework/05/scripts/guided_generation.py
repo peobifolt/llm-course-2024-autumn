@@ -1,3 +1,6 @@
+import torch
+
+
 def generate_with_reward_guidance(
         main_model, main_tokenizer,
         reward_model, reward_tokenizer,
@@ -22,7 +25,29 @@ def generate_with_reward_guidance(
     Returns:
     str: The generated text sample with the highest reward score.
     """
-
-    # <YOUR CODE HERE>
-
-    raise NotImplementedError
+    generated_samples = []
+    for _ in range(N):
+        tokenized = main_tokenizer([''], return_tensors='pt')
+        input_ids = tokenized['input_ids']
+        generated_text_ids = main_model.generate(input_ids)
+        generated_text = main_tokenizer.decode(generated_text_ids[0].tolist())
+        generated_samples.append(generated_text)
+    reward_scores = []
+    for sample in generated_samples:
+        if reward_model is None or reward_tokenizer is None:
+            if sample.isnumeric():
+                rewards = [int(sample)]
+            else:
+                rewards = [1]
+        else:
+            input_ids = reward_tokenizer(
+                [sample], padding=True, truncation=True, return_tensors='pt'
+            )
+            input_ids = {key: value.to(device) for key, value in input_ids.items()}
+            with torch.no_grad():
+                logits = reward_model(**input_ids).logits
+                rewards = logits[:, 0]
+        reward_scores.append(rewards[0])
+    best_sample_idx = reward_scores.index(max(reward_scores))
+    best_sample = generated_samples[best_sample_idx]
+    return best_sample

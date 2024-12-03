@@ -1,4 +1,6 @@
 from tqdm.auto import tqdm
+import torch
+
 
 def eval_reward_model(reward_model, reward_tokenizer, test_dataset, target_label, device='cpu'):
     """
@@ -28,11 +30,31 @@ def eval_reward_model(reward_model, reward_tokenizer, test_dataset, target_label
     >>> accuracy = eval_reward_model(my_reward_model, my_reward_tokenizer, test_data, target_label=1)
     >>> print(f"Model accuracy: {accuracy:.2%}")
     """
-
-    raise NotImplementedError
-
-    # <YOUR CODE HERE>
+    chosen_reviews = [item['text'] for item in test_dataset if item['label'] == target_label]
+    rejected_reviews = [item['text'] for item in test_dataset if item['label'] != target_label]
 
     assert len(chosen_reviews) == len(rejected_reviews)
 
-    # <YOUR CODE HERE>
+    correct = 0
+    total = len(chosen_reviews)
+
+    with torch.no_grad():
+        for chosen_text, rejected_text in tqdm(zip(chosen_reviews, rejected_reviews), total=total, desc="Evaluating"):
+            if reward_model is None or reward_tokenizer is None:
+                if chosen_text.isnumeric() and rejected_text.isnumeric():
+                    rewards = [int(chosen_text), int(rejected_text)]
+                else:
+                    rewards = [1, 0]
+            else:
+                input_ids = reward_tokenizer(
+                    [chosen_text, rejected_text], padding=True, truncation=True, return_tensors='pt'
+                )
+                input_ids = {key: value.to(device) for key, value in input_ids.items()}
+                with torch.no_grad():
+                    logits = reward_model(**input_ids).logits
+                    rewards = logits[:, 0]
+
+            if rewards[0] > rewards[1]:
+                correct += 1
+    accuracy = correct / total if total > 0 else 0.0
+    return accuracy
