@@ -30,7 +30,14 @@ class FSM:
         Returns:
             end (optional int): end state if possible, None otherwise
         """
-        raise NotImplementedError
+        if start is None:
+            start = self.initial
+        v = self.states[start]
+        for c in line:
+            v = v.transitions.get(c, None)
+            if v is None:
+                return None
+        return self.states.index(v)
 
     def accept(self, candidate: str) -> bool:
         """Check if the candidate is accepted by the FSM.
@@ -40,7 +47,8 @@ class FSM:
         Returns:
             is_accept (bool): result of checking
         """
-        raise NotImplementedError
+        v = self.move(candidate)
+        return v is not None and self.states[v].is_terminal
 
     def validate_continuation(self, state_id: int, continuation: str) -> bool:
         """Check if the continuation can be achieved from the given state.
@@ -51,7 +59,7 @@ class FSM:
         Returns:
             is_possible (bool): result of checking
         """
-        raise NotImplementedError
+        return self.move(continuation, state_id) is not None
 
 
 def build_odd_zeros_fsm() -> tuple[FSM, int]:
@@ -66,7 +74,14 @@ def build_odd_zeros_fsm() -> tuple[FSM, int]:
         fsm (FSM): FSM
         start_state (int): index of initial state
     """
-    raise NotImplementedError
+    v0 = State(False)
+    v1 = State(True)
+    v0.add_transition('0', v1)
+    v0.add_transition('1', v0)
+    v1.add_transition('0', v0)
+    v1.add_transition('1', v1)
+    fsm = FSM([v0, v1], 0)
+    return fsm, 0
 
 
 
